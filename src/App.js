@@ -26,6 +26,15 @@ export default function App() {
     );
   }
 
+  function handleClearList() {
+    const confirmed = window.confirm(
+      "Are you sure you want to clear the list?"
+    );
+    if (!confirmed) return;
+
+    setItems([]);
+  }
+
   return (
     <div className="app">
       <Logo />
@@ -34,8 +43,9 @@ export default function App() {
         items={items}
         onRemoveItem={handleRemoveItem}
         onToggleItem={handleToggleItem}
+        onClearList={handleClearList}
       />
-      <Stats />
+      <Stats items={items} />
     </div>
   );
 }
@@ -89,11 +99,23 @@ function Form({ onAddItems }) {
 //   <option v-for="num in 20" :value="num">{{ num }}</option>
 // </select>
 
-function PackingList({ items, onRemoveItem, onToggleItem }) {
+function PackingList({ items, onRemoveItem, onToggleItem, onClearList }) {
+  const [sortBy, setSortBy] = useState("input");
+
+  let sortedItems;
+
+  if (sortBy === "input") sortedItems = items;
+  if (sortBy === "description")
+    sortedItems = items.toSorted((a, b) =>
+      a.description.localeCompare(b.description)
+    );
+  if (sortBy === "packed")
+    sortedItems = items.toSorted((a, b) => a.packed - b.packed);
+
   return (
     <div className="list">
       <ul>
-        {items.map((item) => (
+        {sortedItems.map((item) => (
           <Item
             item={item}
             key={item.id}
@@ -102,6 +124,20 @@ function PackingList({ items, onRemoveItem, onToggleItem }) {
           />
         ))}
       </ul>
+
+      <div
+        className="actions"
+        value={sortBy}
+        onChange={(e) => setSortBy(e.target.value)}
+      >
+        <select>
+          <option value="input">Sort by input order</option>
+          <option value="description">Sort by description</option>
+          <option value="packed">Sort by packed status</option>
+        </select>
+      </div>
+
+      <button onClick={() => onClearList()}>Reset</button>
     </div>
   );
 }
@@ -122,10 +158,27 @@ function Item({ item, onRemoveItem, onToggleItem }) {
   );
 }
 
-function Stats() {
+function Stats({ items }) {
+  if (!items.length) {
+    return (
+      <p className="stats">
+        <em>Nothing to pack yet!</em>
+      </p>
+    );
+  }
+
+  const numItems = items.length;
+  const numPacked = items.filter((item) => item.packed).length;
+  const percentage = Math.round((numPacked / numItems) * 100) || 0;
+
   return (
     <footer className="stats">
-      <em>You have X items on your list, and you already packed X (X%)</em>
+      <em>
+        {percentage === 100
+          ? "You got everything! Time to hit the road!"
+          : `You have ${numItems} items on your list, and you already packed
+        ${numPacked} (${percentage}%)`}
+      </em>
     </footer>
   );
 }
